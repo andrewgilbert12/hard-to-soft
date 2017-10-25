@@ -9,7 +9,10 @@ def _isComment(line):
     return re.match(r'^\s*(//.*)?$',line)
 
 def _isConstant(line):
-    return re.match(r'push constant (\d+)',line)
+    return re.match(r'^\s*push constant (\d+)',line)
+
+def _isPushPop(line):
+    return re.match(r'^\s*(push|pop)\s+(local|argument|this|that|temp|pointer|static)\s+(\d+)\s*(//.*)?$',line)
 
 def _isArith(line):
     return re.match(r'(add|and|neg|not|or|sub)',line)
@@ -21,15 +24,29 @@ def _die_with_err_msg(in_line_ct, msg):
     raise RuntimeError("Line %d:\n\t%s" % (in_line_ct, msg))
 
 class _builtins():
-    def __init__(self):
+    def __init__(self, comments=False):
         self.builtins = {}
         for asm in glob.glob('Assemblies/*.asm'):
             name = os.path.splitext(os.path.basename(asm))[0]
             with open(asm, 'r') as f:
                 cont = []
                 for line in f:
+                  if comments is True or \
+                      not _isComment(line):
                     cont.append(line)
             self.builtins[name] = "".join(cont)
+        self.define_mem_dict();
+
+    def define_mem_dict(self):
+        self.mem_dict = {
+            "local" : "LCL",
+            "argument" : "ARG",
+            "this" : "THIS",
+            "that" : "THAT",
+            "pointer" : "THIS",
+            "temp" : "5",
+            "static" : "16"
+        }
 
     def apply(self, linect, name, *args):
         varct = 0
@@ -44,10 +61,10 @@ class _builtins():
             _die_with_err_msg(linect, "the %s builtin requires additional variables!" % name)
         return code
 
-def _compile(f, builtins):
+def _compile(f, builtins, bootstrap=False):
     out = []
     linect, compct = 0, 0
-    out.append(builtins.apply(linect,"bootstrap"))
+    if bootstrap: out.append(builtins.apply(linect,"bootstrap"))
     for line in f:
         linect += 1
         if _isComment(line):
@@ -58,6 +75,14 @@ def _compile(f, builtins):
         elif _isArith(line):
             name = _isArith(line).group(1)
             out.append(builtins.apply(linect, name))
+        elif _isPushPop(line):
+            op = _isPushPop(line).group(1)
+            reg = _isPushPop(line).group(2)
+            mem = builtins.mem_dict[reg]
+            val = _isPushPop(line).group(3)
+            if reg in ["temp","pointer","static"]: addr = "A"
+            else: addr = "M" # all others
+            out.append(builtins.apply(linect, op, mem, val, addr))
         elif _isComp(line):
             name = _isComp(line).group(1)
             out.append(builtins.apply(linect, name, compct))
