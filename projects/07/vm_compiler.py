@@ -32,7 +32,6 @@ class _builtins():
             self.builtins[name] = "".join(cont)
 
     def apply(self, linect, name, *args):
-        print("applying %s\nargs:" % name)
         varct = 0
         try:
             code = self.builtins[name]
@@ -43,21 +42,18 @@ class _builtins():
             code = re.sub('__VAR' + str(varct) + '__', str(var), code)
         if re.search(r'__VAR(\d+)__', code):
             _die_with_err_msg(linect, "the %s builtin requires additional variables!" % name)
-        print("returning the following:\n%s" % code)
         return code
 
 def _compile(f, builtins):
     out = []
     linect, compct = 0, 0
-    out.append(builtins.apply(linect,"bootstrap"));
+    out.append(builtins.apply(linect,"bootstrap"))
     for line in f:
         linect += 1
         if _isComment(line):
-            print("this is comment")
             continue
         elif _isConstant(line):
             val = _isConstant(line).group(1)
-            print("Constant val: %s" % val)
             out.append(builtins.apply(linect, "pushConst", val))
         elif _isArith(line):
             name = _isArith(line).group(1)
@@ -68,6 +64,7 @@ def _compile(f, builtins):
             compct += 1
         else:
             _die_with_err_msg(linect, "illegal statement:\n\t%s" % line)
+    out.append(builtins.apply(linect,"end"))
     return "\n".join(out)
 
 def compile(file, outfile=None, loghook=None):
@@ -90,7 +87,7 @@ def compile(file, outfile=None, loghook=None):
     with open(outfile, 'w') as f:
         f.write(out)
     if loghook: total_time = (time() - start) / 1000
-    if loghook: loghook("done with %s in %0.6fs" % (file, total_time))
+    if loghook: loghook("done with %s in %0.6fs\n" % (file, total_time))
 
 if __name__ == '__main__':
     from sys import argv, stderr
