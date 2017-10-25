@@ -1,0 +1,13 @@
+@__VAR1__
+D=__VAR3__
+@__VAR2__
+D=D+A
+@SP
+M=M-1
+A=M+1
+M=D
+A=A-1
+D=M
+A=A+1
+A=M
+M=D
