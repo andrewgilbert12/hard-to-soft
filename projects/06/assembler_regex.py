@@ -180,7 +180,7 @@ def assemble(file, outfile=None, loghook=None):
         except RuntimeError as err:
             if loghook: loghook(err.args[0])
             exit(-1)
-            if loghook: loghook("finished building, writing to %s" % outfile)
+        if loghook: loghook("finished building, writing to %s" % outfile)
     with open(outfile, 'w') as f:
         f.write(out)
     if loghook: total_time = (time() - start) / 1000
