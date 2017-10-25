@@ -49,6 +49,7 @@ class _builtins():
 def _compile(f, builtins):
     out = []
     linect, compct = 0, 0
+    out.append(builtins.apply(linect,"bootstrap"));
     for line in f:
         linect += 1
         if _isComment(line):
