@@ -1,6 +1,3 @@
- /* to compile this file: lex jack.l && yacc -d jack.y && gcc yy.lex.c y.tab.c -o compiler */
- /* run by passing file to be compiled as stdin: ./compiler <INFILE >OUTFILE */
- /* todo: add support for passing a folder or file name as an argument. */
 letter [A-Za-z]
 whitespace [ \t\n\r]
 comment "//"[^\n]*"\n"
