@@ -169,7 +169,7 @@ def assemble(file, outfile=None, loghook=None):
     if outfile is None:
         import os
         outfile = os.path.splitext(file)[0] + ".hack"
-    with open(file, 'r') as f: # todo: is this ok?
+    with open(file, 'r') as f:
         try:
             if loghook: loghook("opened %s" % file)
             sym = _default_symbols()
