@@ -4,12 +4,13 @@ import os
 import re
 import argparse
 
+
 class Parser():
     def __init__(self, file):
         with open(file, 'r') as f:
             lines = f.readlines()
         lines = map(self._cleanLine, lines)
-        self.lines = list(filter(None, lines))
+        self.lines = list(filter(None, lines))  # remove lines with no code
         self.current_line = 0
         self.dict = {
             "C_ARITHMETIC": "(add|and|neg|not|or|sub|eq|gt|lt)",
@@ -23,34 +24,49 @@ class Parser():
             "C_RETURN": "return"
         }
 
+
     @staticmethod
     def _cleanLine(line):
+        # remove the following:
         line = re.sub('^\s*', '', line)  # leading spaces
         line = re.sub('\s\s*', ' ', line)  # duplicated spaces
-        line = re.sub('//.*$', '', line)  # comments
+        line = re.sub('//.*$', '', line)  # in-line comments
         return line
 
+
     def hasMoreCommands(self):
+        """Returns whether there are still commands to be processed by the parser."""
         return self.current_line < len(self.lines)
 
+
     def advance(self):
+        """Advances the parser one line forward."""
         self.current_line += 1
 
+
     def commandType(self):
-        """returns one of C_ARITHMETIC, C_PUSH, C_POP, C_LABEL, C_GOTO, C_IF, C_FUNCTION, C_RETURN, C_CALL"""
+        """Returns the command type of the current line, which will be one of:
+        C_ARITHMETIC, C_PUSH, C_POP, C_LABEL, C_GOTO, C_IF, C_FUNCTION, C_RETURN, C_CALL"""
         for cmd, regex in self.dict.items():
             if re.match(regex, self.lines[self.current_line]):
                 return cmd
 
+
     def arg1(self):
-        """returns first arg, or name of command itself for C_ARITHMETIC"""
+        """Returns first argument of the command on the current line.
+        If the current line is a C_ARITHMETIC command, returns the name of the command itself."""
         cmd = self.commandType()
         return re.match(self.dict[cmd], self.lines[self.current_line]).group(1)
 
+
     def arg2(self):
-        """returns second arg for C_PUSH, C_POP, C_FUNCTION, C_CALL"""
+        """Returns the second argument of the command on the current line.
+        Returns None for any command other than C_PUSH, C_POP, C_FUNCTION, C_CALL."""
         cmd = self.commandType()
-        return re.match(self.dict[cmd], self.lines[self.current_line]).group(2)
+        try:
+            return re.match(self.dict[cmd], self.lines[self.current_line]).group(2)
+        except IndexError:
+            return None
 
 
 class CodeWriter():
@@ -68,12 +84,16 @@ class CodeWriter():
         }
         self.call_count = 0
 
+
     def setFileName(self, fileName):
-        """Informs codewriter that translation of new vm file is started"""
+        """Informs codewriter that translation of new vm file is started,
+        and sets the name of the current file."""
         self.fileName = fileName
 
+
     def writeInit(self):
-        """Bootstrap code, set default vars, and run Sys.init"""
+        """Output bootstrap code needed to interface with OS.
+        Sets up the stack and runs Sys.init."""
         # push 256 to SP
         self._writeAsm(["@256",
                         "D=A",
@@ -81,8 +101,12 @@ class CodeWriter():
                         "M=D"])
         self.writeCall("Sys.init", 0)
 
+
     def writeArithmetic(self, command):
-        # add and or not neg eq lt gt
+        """Writes the arithmetic command specified by command.
+        command must be one of "add", "and", "or", "not", "neg", "eq", "lt", "gt"."""
+        assert(command in ["add", "and", "or", "not", "neg", "eq", "lt", "gt"])
+        
         if command in ["not", "neg"]:
             cmd = {"not": "!", "neg": "-"}[command]
             self._writeAsm(["@SP",
@@ -112,13 +136,15 @@ class CodeWriter():
                             "A=M-1",
                             "M=M" + cmd + "D"])
 
+
     def writePushPop(self, command, segment, index):
         """Write a push/pop statement to the specified memory location.
-        command must be one of "push,pop"
-        segment must be on of "local,argument,this,that,temp,pointer,static,constant"
-        index must be a non-negative integer"""
+        command must be one of "push","pop".
+        segment must be on of "local","argument","this","that","temp","pointer","static","constant".
+        index must be a non-negative integer."""
         assert(command in ["push", "pop"])
         assert(segment in ["local", "argument", "this", "that", "temp", "pointer", "static", "constant"])
+        
         if segment == "constant":
             self._writePushConstant(index)
         elif segment == "static":
@@ -141,25 +167,39 @@ class CodeWriter():
             elif command == "pop":
                 self._writePop(mem, index, addr)
 
+
+    def _writeLabel(self, label):
+        self._writeAsm(["(" + label + ")"])
+
+
     def writeLabel(self, label):
+        """Writes the specified label."""
         self._writeLabel(self._localLabel(label))
+
 
     def _writeGoto(self, label):
         self._setAddress(label)
         self.outFile.write("0;JMP\n")
 
+
     def writeGoto(self, label):
+        """Write an unconditional goto that jumps to label."""
         self._writeGoto(self._localLabel(label))
+
 
     def _writeIf(self, label):
         self._popFromStack()
         self._setAddress(label)
         self.outFile.write("D;JNE\n")
 
+
     def writeIf(self, label):
+        """Write a conditional jump to label."""
         self._writeIf(self._localLabel(label))
 
+
     def writeCall(self, functionName, numArgs):
+        """Writes a call to the function functionName, with numArgs arguments currently on the stack."""
         self.call_count += 1
 
         return_address = "call$" + functionName + "." + str(self.call_count)
@@ -196,7 +236,9 @@ class CodeWriter():
         self._writeGoto(functionName)
         self._writeLabel(return_address)
 
+
     def writeFunction(self, functionName, numLocals):
+        """Writes the beginning of the function with the name functionName, and numLocals local variables."""
         self._writeLabel(functionName)
 
         for _ in range(numLocals):
@@ -204,18 +246,27 @@ class CodeWriter():
             self._saveAddress()
             self._pushToStack()
 
+
     def writeReturn(self):
+        """Write a return instruction.
+        
+        todo: code size for a function with several returns could be optimized
+        by writing only one return statement for each function at the end, and then only
+        writing a goto to that return statement here."""
+        
+        # FRAME = LCL
         self._setAddress("LCL")
         self._saveMemory()
         self._setAddress("R13")
-        self._setMemory() # FRAME = LCL
+        self._setMemory()
 
+        # RET = *(FRAME-5)
         self._setAddress("5")
         self._writeAsm(["D=D-A"])
         self._setAddress()
         self._saveMemory()
         self._setAddress("R14")
-        self._setMemory() # RET = *(FRAME-5)
+        self._setMemory()
 
         # *ARG = pop()
         self._popFromStack()
@@ -269,22 +320,28 @@ class CodeWriter():
         self._setAddress("LCL")
         self._setMemory()
 
-        # goto RET
+        # goto RIP
         self._setAddress("R14")
         self._dereference()
         self._writeAsm(["0;JMP"])
 
+
     def close(self):
+        """Closes the output file and performs all other necessary end of compile tasks."""
         self.outFile.close()
+
 
     def _saveMemory(self):
         self._writeAsm(["D=M"])
 
+
     def _setMemory(self):
         self._writeAsm(["M=D"])
 
+
     def _localLabel(self, label):
         return self.current_function + "." + label
+
 
     def _pushToStack(self):
         """Pushes the value in D onto the stack"""
@@ -293,6 +350,7 @@ class CodeWriter():
                         "A=M-1",
                         "M=D"])
 
+
     def _popFromStack(self):
         """Pops value of stack into D"""
         self._writeAsm(["@SP",
@@ -300,8 +358,10 @@ class CodeWriter():
                         "A=M",
                         "D=M"])
 
+
     def _dereference(self):
         self._writeAsm(["A=M"])
+
 
     def _setAddress(self, addr=None):
         """Updates memory to specified constant/label, or D if none is specified"""
@@ -310,23 +370,26 @@ class CodeWriter():
         else:
             self._writeAsm(["@" + addr])
 
+
     def _saveAddress(self):
         self._writeAsm(["D=A"])
+
 
     def _staticName(self, index):
         return self.fileName + "." + str(index)
 
+
     def _writeAsm(self, lines):
         for line in lines:
-            self.outFile.write(line + "\n")
+            self.
+            .write(line + "\n")
 
-    def _writeLabel(self, label):
-        self._writeAsm(["(" + label + ")"])
 
     def _writePushConstant(self, val):
         self._writeAsm(["@" + val,
                         "D=A"])
         self._pushToStack()
+
 
     def _writePushStatic(self, index):
         label = self._staticName(index)
@@ -334,11 +397,13 @@ class CodeWriter():
                         "D=M"])
         self._pushToStack()
 
+
     def _writePopStatic(self, index):
         label = self._staticName(index)
         self._popFromStack()
         self._writeAsm(["@" + label,
                         "M=D"])
+
 
     def _writePush(self, mem, index, addr):
         self._writeAsm(["@" + mem,
@@ -347,6 +412,7 @@ class CodeWriter():
                         "A=D+A",
                         "D=M"])
         self._pushToStack()
+
 
     def _writePop(self, mem, index, addr):
         self._writeAsm(["@" + mem,
@@ -386,6 +452,15 @@ def _compile(parser, writer):
 
 
 def compile(target, bootstrap=False):
+    """Compiles the target specified, optionally appending bootstrap code.
+    
+    If the target path is a directory, we compile all files in the directory 
+    with the extension ".vm" and write the output to a single assembly file.
+    This file is placed in (and has the same name as) the target directory.
+    
+    If the target path is a file, we compile it and write the output
+    to a file with the same name and the extension ".asm".
+    """
     if os.path.isdir(target):
         outFile = os.path.join(target,
                                os.path.basename(os.path.dirname(target)) + ".asm")
@@ -403,13 +478,18 @@ def compile(target, bootstrap=False):
 
     else:
         outFile = os.path.splitext(target)[0] + ".asm"
+        if outFile == target:
+            # We only enforce that the file cannot end in ".asm,"
+            # because by opening our output file we would erase the input.
+            print("Cannot compile files ending in '.asm'")
+            exit(1)
 
         codeWriter = CodeWriter(outFile)
-        if bootstrap: codeWriter.writeInit()
+        if bootstrap: codeWriter.writeInit()  # write bootstrap code needed to load OS
         parser = Parser(target)
         codeWriter.setFileName(os.path.basename(target))
         _compile(parser, codeWriter)
-        if bootstrap: codeWriter.close()
+        codeWriter.close()
 
 
 def main():
@@ -423,7 +503,7 @@ def main():
         exit(1)
     for target in targets:
         compile(target, args.b)
-
+    exit(0)
 
 if __name__ == '__main__':
     main()
