@@ -308,7 +308,7 @@ subroutineCallName:
 subroutineCallClassVarName:
  IDENTIFIER {
     char *var_name;
-    if (var_name = get_variable_name($1)) {
+    if ((var_name = get_variable_name($1))) {
         /* if we have a method call, push the object itself to the stack */
         printf("push %s\n", var_name);
         current_subroutine_parameter_count = 1;
@@ -469,8 +469,8 @@ char *get_variable_name(char const *name) {
     /* find variable in table, output its VM-level reference or return null pointer for undefined var */
     char *ret;
 
-    if (ret = get_variable_name_by_table(name, subroutine_table, subroutine_table_size)) return ret;
-    if (ret = get_variable_name_by_table(name, class_table, class_table_size)) return ret;
+    if ((ret = get_variable_name_by_table(name, subroutine_table, subroutine_table_size))) return ret;
+    if ((ret = get_variable_name_by_table(name, class_table, class_table_size))) return ret;
 
     return 0;
 }
@@ -508,8 +508,8 @@ char *get_variable_type(char const *name) {
     /* find variable in table, output its VM-level reference or return null for undefined var */
     char *ret;
 
-    if (ret = get_variable_type_by_table(name, subroutine_table, subroutine_table_size)) return ret;
-    if (ret = get_variable_type_by_table(name, class_table, class_table_size)) return ret;
+    if ((ret = get_variable_type_by_table(name, subroutine_table, subroutine_table_size))) return ret;
+    if ((ret = get_variable_type_by_table(name, class_table, class_table_size))) return ret;
 
     return 0;
 }
