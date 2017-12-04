@@ -190,6 +190,7 @@ class Output {
      *  and erases the character displayed there. */
     function void moveCursor(int i, int j) {
 
+        // Any attempt to move to a cursor position off screen results in an error.
         if ((i < 0) | (j < 0) | (i > maxrow) | (j > maxcol)) {
             do Sys.error(20);
             return;

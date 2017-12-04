@@ -35,7 +35,7 @@ class Sys {
             do Sys.error(1);
         }
 
-        let limit = 390;
+        let limit = 390; // this value is dependent on clock speed of CPU
         let counter1 = 0;
         let counter2 = 0;
 

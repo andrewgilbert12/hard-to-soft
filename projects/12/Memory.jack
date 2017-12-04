@@ -37,6 +37,7 @@ class Memory {
     function int alloc(int size) {
         var Array currentblock;
 
+        // Can only allocate memory blocks of positive size.
         if (size < 1) {
             do Sys.error(5);
         }
@@ -48,6 +49,9 @@ class Memory {
                 let currentblock[1] = currentblock[1] - size - 2;
                 return currentblock + 2 + currentblock[1];
             } else {
+                // If we cannot allocate a block of the specified size, we throw an error
+                // TODO: consider defragging memory, returning -1 similar to malloc,
+                // so that code can recover from lack of memory.
                 if (currentblock[0] = 0){
                     do Sys.error(6);
                 } else {

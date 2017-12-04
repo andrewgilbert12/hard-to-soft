@@ -44,6 +44,7 @@ class String {
 
     /** Returns the character at the j-th location of this string. */
     method char charAt(int j) {
+        // Out of bounds error
         if (j > (length - 1)) {
             do Sys.error(15);
         }
@@ -53,6 +54,7 @@ class String {
 
     /** Sets the character at the j-th location of this string to c. */
     method void setCharAt(int j, char c) {
+        // Out of bounds error
         if (j > (length - 1)) {
             do Sys.error(16);
             return;
@@ -68,6 +70,7 @@ class String {
             let chars[length] = c;
             let length = length + 1;
         } else {
+            // Attempts to append beyond the end of the string result in an error.
             do Sys.error(17);
         }
 
@@ -76,6 +79,7 @@ class String {
 
     /** Erases the last character from this string. */
     method void eraseLastChar() {
+        // Erasing from an empty string results in an error.
         if (length = 0) {
             do Sys.error(18);
             return;
@@ -139,6 +143,8 @@ class String {
         }
 
         if (val < 0) {
+            // Attempting to set a string to the representation of
+            // an int that is too long for it results in an error.
             if (maxLen < 1) {
                 do Sys.error(19);
                 return;
@@ -164,7 +170,8 @@ class String {
         }
 
         if ((maxLen - length) < 1) {
-            // out of space
+            // Attempting to set a string to the representation of
+            // an int that is too long for it results in an error.
             do Sys.error(19);
             return;
         }

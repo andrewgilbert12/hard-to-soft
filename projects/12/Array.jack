@@ -17,6 +17,7 @@ class Array {
     function Array new(int size) {
       var int startAddr;
 
+      // Arrays must have positive size.
       if (size < 1) {
           do Sys.error(2);
       }

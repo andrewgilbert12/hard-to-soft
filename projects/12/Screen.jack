@@ -48,6 +48,7 @@ class Screen {
     function void drawPixel(int x, int y) {
         var int x_byte, bit, address, val, bitmap;
   
+        // Any attempt to draw a pixel offscreen results in an error.
         if ((x < 0) | (y < 0) | (x > max_x) | (y > max_y)) {
             do Sys.error(7);
             return; 
@@ -81,6 +82,7 @@ class Screen {
     function void drawLine(int x1, int y1, int x2, int y2) {
         var int swap, dx, dy, diff, x, y;
 
+        // Either endpoint of the line being offscreen results in an error.
         if ((x1 < 0) | (y1 < 0) | (x1 > max_x) | (y1 > max_y) |
             (x2 < 0) | (y2 < 0) | (x2 > max_x) | (y2 > max_y)){
             do Sys.error(8);
@@ -151,6 +153,7 @@ return;
     function void drawRectangle(int x1, int y1, int x2, int y2) {
         var int x;
 
+        // Any vertex of the rectangle being offscreen results in an error.
         if ((x1 > x2) | (y1 > y2) |
             (x1 < 0) | (y1 < 0) | (x1 > max_x) | (y1 > max_y) |
             (x2 < 0) | (y2 < 0) | (x2 > max_x) | (y2 > max_y)){
@@ -170,6 +173,7 @@ return;
     function void drawCircle(int x, int y, int r) {
         var int a, d, curr_y;
 
+        // If the center of the circle is offscreen, results in an error.
         if ((x < 0) | (y < 0) | (x > max_x) | (y > max_y)){
             do Sys.error(12);
             return; 
@@ -184,6 +188,9 @@ return;
         while (a < (r + 1)) {
             let d = Math.sqrt((r * r) - (a * a));
             let curr_y = y + a;
+            // TODO: currently any circle with any points offscreen will crash the computer.
+            // it is not specified in the OS library documentation whether this is desirable.
+            // we can draw circles that get cut off by the edge of the screen if we add bounds checking here.
             do Screen.drawLine(x - d, curr_y, x + d, curr_y);
             let a = a + 1;
         }

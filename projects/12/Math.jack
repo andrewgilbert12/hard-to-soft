@@ -57,6 +57,7 @@ class Math {
     function int divide(int x, int y) {
       var int q;
 
+      // Cannot divide by 0.
       if (y = 0) {
           do Sys.error(3);
       }
@@ -86,6 +87,7 @@ class Math {
     function int sqrt(int x) {
       var int min, max, i, sqr;
 
+      // Cannot take the square root of a negative number.
       if (x < 0) {
           do Sys.error(4);
       }

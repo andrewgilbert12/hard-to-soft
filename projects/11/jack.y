@@ -437,10 +437,10 @@ op:
     $$ = "sub";
  }
  | S_MULT {
-    $$ = "call Math.multiply 2";
+    $$ = "call Math.multiply 2"; /* use OS standard library */
  }
  | S_DIV {
-    $$ = "call Math.divide 2";
+    $$ = "call Math.divide 2"; /* use OS standard library */
  }
  | S_OR {
     $$ = "or";
