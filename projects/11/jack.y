@@ -47,6 +47,7 @@
  typedef struct sym_table_entry sym_table_entry;
  typedef sym_table_entry sym_table[MAX_VAR_COUNT];
 
+ /* we have only two levels of scope in Jack: class-level and subroutine-level. */
  static sym_table class_table;
  static sym_table subroutine_table;
 
@@ -82,12 +83,10 @@
 
 %%
 
- /* classes*/
+ /* Every Jack file is a single class.
+  All class fields and static variables are declared first, followed by subroutines. */
 class:
- K_CLASS className S_LBRACE classVarDecs subroutineDecs S_RBRACE {
-/*    free(current_class_name); */
-      class_table_size = 0;
- }
+ K_CLASS className S_LBRACE classVarDecs subroutineDecs S_RBRACE
 
 className:
  IDENTIFIER {
@@ -98,9 +97,7 @@ classVarDecs: /* empty */
  | classVarDecs classVarDec
 
 classVarDec:
- classVarDecExtent classVarDecType classVarDecNames S_SEMICOLON {
-    /* free(current_var_type); */
- }
+ classVarDecExtent classVarDecType classVarDecNames S_SEMICOLON
 
 classVarDecExtent:
  K_STATIC  { current_var_extent = STATIC; }
@@ -115,7 +112,7 @@ classVarDecNames:
  | classVarDecNames S_COMMA IDENTIFIER { add_var_to_table($3, class_table, &class_table_size); }
 
 
- /* subroutines */
+ /* A single Jack class can have multiple subroutines. These can be constructors, methods (which take an implicit this), or functions. */
 subroutineDecs: /* empty */
  | subroutineDecs subroutineDec
 
@@ -130,7 +127,7 @@ subroutineType:
  | K_METHOD {
     current_subroutine_type = METHOD;
 
-    /* add an extra argument to the stack to correspond to the object itself */
+    /* For methods, push an implicit 'this' to the stack. */
     current_var_extent = ARG;
     current_var_type = "";
     add_var_to_table("this", subroutine_table, &subroutine_table_size);
@@ -192,6 +189,7 @@ emitStartCode:
     }
  }
 
+/* Similar to classes, Jack requires all variable declarations to come at the beginning of the subroutine. */
 subroutineVarDecs: /* empty */
  | subroutineVarDecs K_VAR subroutineVarDecType subroutineVarDecNames S_SEMICOLON
 
@@ -468,13 +466,12 @@ primitiveType:
 %%
 
 char *get_variable_name(char const *name) {
-    /* find variable in table, output its VM-level reference or return null for undefined var */
+    /* find variable in table, output its VM-level reference or return null pointer for undefined var */
     char *ret;
 
     if (ret = get_variable_name_by_table(name, subroutine_table, subroutine_table_size)) return ret;
     if (ret = get_variable_name_by_table(name, class_table, class_table_size)) return ret;
 
-/*    yyerror("Variable not found!\n"); */
     return 0;
 }
 
